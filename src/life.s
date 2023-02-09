@@ -7,6 +7,7 @@
 ; Macros
 ; ------------------------------------------------------------------------------
 
+            use       Dos.16.Macs
             use       Locator.Macs
             use       Mem.Macs
             use       Misc.Macs
@@ -26,9 +27,6 @@
             _TLStartUp
 
             jsr       MemStartUp
-            stx       MasterId
-            sty       MyId
-
 
             jsr       AllocateBoard
             PullLong  BoardCur
@@ -67,21 +65,12 @@ Waiting
 CleanUp
             jsr       GraphicsOff
 
-            PushWord  MyId
-            _DisposeAll
+            _MTShutDown
 
-            lda       MasterId
             jsr       MemShutdown
 
             _TLShutDown
             jsr       Quit
-
-
-; Global variables
-; ------------------------------------------------------------------------------
-
-MasterId    ds        2
-MyId        ds        2
 
 
 ; Includes Begin

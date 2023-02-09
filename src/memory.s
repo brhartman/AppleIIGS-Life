@@ -4,6 +4,88 @@
               mx        %00
 
 
+UserId        ds        2
+MemId         ds        2
+
+
+; MemStartUp
+; ------------------------------------------------------------------------------
+MemStartUp    stz       MMAppId
+              pha
+              _MMStartUp
+              pla
+              bcc       :MMStarted
+
+; _MMStartUp likely failed because we are not running from GS/OS
+; Create a new id, allocate banks 0 and 1, and then try _MMStartUp again
+
+; Create a new id
+              PushWord  #$0000
+              PushWord  #$1000
+              _GetNewID
+              jsr       CheckError
+              pla
+              sta       MMAppId
+
+; Allocate all of bank0
+              PushLong  #$0000
+              PushLong  #$b800
+              PushWord  MMAppId
+              PushWord  #$c002
+              PushLong  #$00000800
+              _NewHandle
+              jsr       CheckError
+              PullLong  MMBank0
+
+; Allocate all of bank1
+              PushLong  #$0000
+              PushLong  #$b800
+              PushWord  MMAppId
+              PushWord  #$c002
+              PushLong  #$00010800
+              _NewHandle
+              jsr       CheckError
+              PullLong  MMBank1
+
+; Try _MMStartUp again
+              pha
+              _MMStartUp
+              jsr       CheckError
+              pla
+
+:MMStarted    sta       UserId
+              ora       #$0100
+              sta       MemId
+
+              rts
+
+MMAppId       ds        2
+
+MMBank0       ds        4
+MMBank1       ds        4
+
+
+; MemShutdown
+; ------------------------------------------------------------------------------
+MemShutdown   lda       MMAppId
+              beq       :MMShutdown
+
+              PushLong  MMBank1
+              _DisposeHandle
+              PushLong  MMBank0
+              _DisposeHandle
+              PushWord  MMAppId
+              _DeleteID
+
+:MMShutdown
+              PushWord  MemId
+              _DisposeAll
+
+              PushWord  UserId
+              _MMShutDown
+              rts
+
+
 ; NewAlloc
 ; Stack = block size
 ; Return Stack = block handle, block pointer
@@ -16,10 +98,11 @@ NewAlloc
 ; Allocate the memory block
               PushLong  #$0000
               PushLong  MemBlockSize
-              PushWord  MyId
+              PushWord  MemId
               PushWord  #%11000000_00011100
               PushLong  #$0000
               _NewHandle
+              jsr       CheckError
               PullLong  DPMem1
 
 ; Store a pointer to the memory in DPMem2 using DPMem0 for direct page access
@@ -44,84 +127,3 @@ NewAlloc
               rts
 
 MemBlockSize  ds        4
-
-
-; MemStartUp
-; Return: X = user memory id
-; Return: Y = aux user memory id
-; ------------------------------------------------------------------------------
-MemStartUp    stz       MMAppId
-              pha
-              _MMStartUp
-              pla
-              bcc       :MMStarted
-
-; _MMStartUp likely failed because we are not running from GS/OS
-; Create a new id, allocate banks 0 and 1, and then try _MMStartUp again
-
-              _MTStartUp
-
-; Create a new id
-              PushWord  #$0000
-              PushWord  #$1000
-              _GetNewID
-              pla
-              sta       MMAppId
-
-; Allocate all of bank0
-              PushLong  #$0000
-              PushLong  #$b800
-              PushWord  MMAppId
-              PushWord  #$c002
-              PushLong  #$00000800
-              _NewHandle
-              bcs       :VeryBad
-              PullLong  MMBank0
-
-; Allocate all of bank1
-              PushLong  #$0000
-              PushLong  #$b800
-              PushWord  MMAppId
-              PushWord  #$c002
-              PushLong  #$00010800
-              _NewHandle
-              bcs       :VeryBad
-              PullLong  MMBank1
-
-; Try _MMStartUp again
-              pha
-              _MMStartUp
-              pla
-              bcs       :VeryBad
-
-:MMStarted    tax
-              ora       #$0100
-              tay
-
-              rts
-
-:VeryBad      brk
-
-MMAppId       ds        2
-
-MMBank0       ds        4
-MMBank1       ds        4
-
-
-; MemShutdown
-; A = user memory id
-; ------------------------------------------------------------------------------
-MemShutdown   pha
-              lda       MMAppId
-              beq       :MMShutdown
-
-              PushLong  MMBank1
-              _DisposeHandle
-              PushLong  MMBank0
-              _DisposeHandle
-              PushWord  MMAppId
-              _DeleteID
-              _MTShutDown
-
-:MMShutdown   _MMShutDown
-              rts
