@@ -7,6 +7,10 @@
 UserId        ds        2
 MemId         ds        2
 
+MemAttrDP     equ       %11000000_00000101
+MemAttrAlgn   equ       %11000000_00011100
+MemAttrUI     equ       %00000000_00000000
+
 
 ; MemStartUp
 ; ------------------------------------------------------------------------------
@@ -87,43 +91,92 @@ MemShutdown   lda       MMAppId
 
 
 ; NewAlloc
-; Stack = block size
-; Return Stack = block handle, block pointer
+; Stack = block size (long), attribute flags (word)
+; Return Stack = block handle
 ; ------------------------------------------------------------------------------
 NewAlloc
-              plx                            ; rts address
+              plx                           ; rts address
+              PullWord  MemBlockAttr
               PullLong  MemBlockSize
-              phx                            ; rts address
+              phx                           ; rts address
 
 ; Allocate the memory block
               PushLong  #$0000
               PushLong  MemBlockSize
               PushWord  MemId
-              PushWord  #%11000000_00011100
+              PushWord  MemBlockAttr
               PushLong  #$0000
               _NewHandle
               jsr       CheckError
               PullLong  DPMem1
 
-; Store a pointer to the memory in DPMem2 using DPMem0 for direct page access
-              lda       DPMem1
-              sta       DPMem0
-              lda       DPMem1+2
-              sta       DPMem0+2
-              lda       [DPMem0]
-              sta       DPMem2
-              ldy       #$2
-              lda       [DPMem0],y
-              sta       DPMem2+2
-
-; DPMem1 is the block handle, DPMem2 is the block pointer
-
-; Push the block pointer and block handle
-              plx                            ; rts address
-              PushLong  DPMem2
+; Push the block handle
+              plx                           ; rts address
               PushLong  DPMem1
-              phx                            ; rts address
+              phx                           ; rts address
 
               rts
 
 MemBlockSize  ds        4
+MemBlockAttr  ds        2
+
+
+; DerefHandle
+; Stack = block handle
+; Return a,x = block pointer
+; ------------------------------------------------------------------------------
+DerefHandle
+              plx                           ; rts address
+              PullLong  0
+              phx                           ; rts address
+
+; Dereference the block handle to a,x
+              ldy       #$2
+              lda       [0],y
+              tax
+              lda       [0]
+
+              rts
+
+
+; ; NewAlloc
+; ; Stack = block size
+; ; Return Stack = block handle, block pointer
+; ; ------------------------------------------------------------------------------
+; NewAlloc
+;               plx                            ; rts address
+;               PullLong  MemBlockSize
+;               phx                            ; rts address
+
+; ; Allocate the memory block
+;               PushLong  #$0000
+;               PushLong  MemBlockSize
+;               PushWord  MemId
+;               PushWord  #%11000000_00011100
+;               PushLong  #$0000
+;               _NewHandle
+;               jsr       CheckError
+;               PullLong  DPMem1
+
+; ; Store a pointer to the memory in DPMem2 using DPMem0 for direct page access
+;               lda       DPMem1
+;               sta       DPMem0
+;               lda       DPMem1+2
+;               sta       DPMem0+2
+;               lda       [DPMem0]
+;               sta       DPMem2
+;               ldy       #$2
+;               lda       [DPMem0],y
+;               sta       DPMem2+2
+
+; ; DPMem1 is the block handle, DPMem2 is the block pointer
+
+; ; Push the block pointer and block handle
+;               plx                            ; rts address
+;               PushLong  DPMem2
+;               PushLong  DPMem1
+;               phx                            ; rts address
+
+;               rts
+
+; MemBlockSize  ds        4

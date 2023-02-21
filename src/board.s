@@ -14,9 +14,14 @@ BoardNext      ds          4
 AllocateBoard
 
                PushLong    #32000
+               PushWord    #MemAttrAlgn
                jsr         NewAlloc
                PullLong    DPTmp1
-               PullLong    DPTmp2
+
+               PushLong    DPTmp1
+               jsr         DerefHandle
+               sta         DPTmp2
+               stx         DPTmp2+2
 
 ; DPTmp1 is the board handle, DPTmp2 is the board pointer
 

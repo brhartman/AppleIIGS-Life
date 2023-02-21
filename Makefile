@@ -12,22 +12,22 @@ SPEED=2
 
 IIGS=/opt/appleiigs
 
+DISKNAME=$(NAME)
+DISKPATH=bin/$(NAME).po
+CONFIGPATH=config.kegs
+
 ifeq ($(ISGSOS), 1)
 # Run from GS/OS
 MAINBIN=obj/$(NAME)\#B30001
 S7D1=$(IIGS)/disks/GSOS.2mg
-S5D1=bin/$(NAME)DISK.po
+S5D1=$(DISKPATH)
 else
 # Run from ProDOS
 MEMADDR=2000
 MAINBIN=obj/$(NAME).SYSTEM\#FF$(MEMADDR)
-S7D1=bin/$(NAME)DISK.po
+S7D1=$(DISKPATH)
 S5D1=
 endif
-
-DISKNAME=$(NAME)DISK
-DISKPATH=bin/$(DISKNAME).po
-CONFIGPATH=config.kegs
 
 all: disk
 

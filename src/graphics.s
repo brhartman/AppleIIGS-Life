@@ -103,9 +103,14 @@ LocatePEISlam
 
 ; Allocate memory for relocating PEISlam
                     PushLong  #$0400
+                    PushWord  #MemAttrAlgn
                     jsr       NewAlloc
                     PullLong  PEISlamLoc
-                    PullLong  DPPEISlamLoc
+
+                    PushLong  PEISlamLoc
+                    jsr       DerefHandle
+                    sta       DPPEISlamLoc
+                    stx       DPPEISlamLoc+2
 
 ; Copy PEISlam to the new location
                     ldx       PEISlam
